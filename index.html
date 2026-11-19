@@ -57,7 +57,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
 <div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
 <div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
-<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="5" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td></tr></tfoot></table>
+<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td></tr></tfoot></table>
 <p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries.</small></p></div>
 <div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
 </div>
@@ -68,7 +68,8 @@ const T=[.002,.004,.006,.008,.010,.012,.015,.017,.019,.021,.023,.025,.027,.029,.
 const SAMPLE={1:["8:03A","12:05P","12:19P","5:04P",3],5:["7:54A","11:41A","11:54A","5:01P",24],6:["7:52A","12:01P","12:12P","5:03P",0],7:["7:52A","12:02P","12:13P","5:07P",0],8:["8:13A","12:01P","12:06P","5:02P",13],14:["8:13A","12:10P","12:44P","5:05P",13],15:["8:09A","12:10P","12:14P","5:05P",9],19:["8:07A","11:34A","11:46A","5:04P",37],20:["8:23A","12:04P","12:10P","5:04P",23],26:["7:52A","11:31A","11:42A","",22],28:["8:33A","12:01P","12:08P","5:05P",33],29:["7:56A","12:02P","12:08P","5:08P",0]};
 const $=id=>document.getElementById(id);
 let recs=[],cur=0;
-const sample=()=>({name:"MARK ANGELO ZARA (E01-23-0029)",month:"2026-10",printedTotal:177,rows:JSON.parse(JSON.stringify(SAMPLE))});
+const sample=()=>{const rows={};for(const d in SAMPLE){const v=SAMPLE[d];rows[d]=[v[0],v[1],v[2],v[3],"","",v[4]]}return{name:"MARK ANGELO ZARA (E01-23-0029)",month:"2026-10",printedTotal:177,rows}};
+const blank=()=>{const d=new Date();return{name:"",month:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),printedTotal:null,rows:{},empty:true}};
 function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12)h+=12;return h*60+mi}
 const sched=dow=>[parse($(dow==1?"s0":"s1").value,0),parse($("s2").value,1),parse($("s3").value,2),parse($("s4").value,3)];
 function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};if(t.every(x=>x===null))return null;
@@ -77,16 +78,16 @@ if(t[1]!=null&&$("am").checked)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.
 return{late,ut,tot:late+ut,inc:(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null)}}
 function recTot(r){let n=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)n+=c.tot}return n}
 const dayEq=n=>{const h=Math.floor(n/60),m=n%60;return(h*.125+(m?T[m-1]:0)).toFixed(3)};
-function renderList(){$("cnt").textContent="("+recs.length+")";
+function renderList(){if(recs.length==1&&recs[0].empty){$("cnt").textContent="(0)";$("lb").innerHTML='<tr style="cursor:default"><td colspan="7" style="text-align:center;color:var(--mut);height:70px;white-space:normal">No DTRs yet. Upload a PDF to begin.</td></tr>';return}$("cnt").textContent="("+recs.length+")";
 $("lb").innerHTML=recs.map((r,i)=>{const t=recTot(r),h=Math.floor(t/60),m=t%60,p=r.printedTotal;
 return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td><td><button class="g" tabindex="-1">Open</button></td></tr>`}).join("");
 $("lb").querySelectorAll("tr").forEach((tr,i)=>tr.onclick=()=>{cur=i;load()})}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
 for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay(),dd=String(d).padStart(2,"0");
-if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="8">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
-const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="4" inputmode="numeric" value="${esc(v[4]??"")}"></td></tr>`}
-$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();calc()}))}
+if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="10">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
+const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td></tr>`}
+$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();delete recs[cur].empty;calc()}))}
 function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const v=[...tr.querySelectorAll("input")].map(i=>i.value.trim());if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
 function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
 function calc(){const r=recs[cur],[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0;
@@ -94,15 +95,15 @@ document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySel
 const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r");const c=rowCalc(I,sched(new Date(cy,cm-1,+tr.dataset.d).getDay()));
 if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";R.className="res r diff";return}
 if(!c){L.textContent=U.textContent="";R.textContent="0"}else{L.textContent=c.late;U.textContent=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot;tl+=c.late;tu+=c.ut}
-const pv=I[4].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
+const pv=I[6].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
 $("tl").textContent=tl;$("tu").textContent=tu;$("tt").textContent=tot;{const pt=r.printedTotal!=null?r.printedTotal:(hasP?pr:null);$("tpp").textContent=pt==null?"—":pt;$("tpp").className=pt==null?"":(pt==tot?"okc":"diff")}
 $("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").textContent=h+"h "+m+"m";$("td").textContent=dayEq(tot);
 $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
-$("nm").oninput=()=>{recs[cur].name=$("nm").value;renderList()};
+$("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderList()};
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
 ["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
 $("smp").onclick=()=>{recs=[sample()];cur=0;$("msg").innerHTML="<small>Sample loaded.</small>";load()};
-$("csv").onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
+$("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
 recs.forEach(r=>{const [y,mo]=r.month.split("-").map(Number);Object.keys(r.rows).map(Number).sort((a,b)=>a-b).forEach(d=>{const dow=new Date(y,mo-1,d).getDay();if(dow==0||dow==6)return;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)L.push([q(r.name),r.month,d,c.late,c.ut,c.tot].join(","))});L.push([q(r.name),r.month,q("TOTAL"),"","",recTot(r)].join(","))});
 const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join("\n")],{type:"text/csv"}));a.download="dtr-late-undertime.csv";a.click()};
 
@@ -120,10 +121,10 @@ function parseRegion(R){
  if(nm){const above=R.filter(i=>i.y>nm.y+1&&i.y<nm.y+30).sort((a,b)=>a.y-b.y);if(above.length){const y0=above[0].y;name=lineOf(above,y0).sort((a,b)=>a.x-b.x).map(i=>i.s.trim()).join(" ").replace(/\s+/g," ").trim()}}
  const rows={};
  R.forEach(di=>{const dm=di.s.match(/^\s*(\d{2})(?=\s|$)/);if(!dm||di.x>H[0]-18)return;const d=+dm[1];if(d<1||d>31)return;
-  const L=lineOf(R,di.y);const v=["","","","",""];let any=false;
-  L.forEach(it=>{let m;TM.lastIndex=0;while((m=TM.exec(it.s))){const cx=it.x+it.w*(m.index+m[0].length/2)/it.s.length;let k=0,b=1e9;for(let j=0;j<4;j++){const dd=Math.abs(cx-H[j]);if(dd<b){b=dd;k=j}}if(b<30){v[k]=m[1]+":"+m[2]+m[3].toUpperCase();any=true}}});
-  const nums=L.filter(it=>/^\d{1,3}$/.test(it.s.trim())&&it!==di&&it.x>H[3]+40).sort((a,b)=>b.x-a.x);
-  if(nums.length){v[4]=nums[0].s.trim();any=true}
+  const L=lineOf(R,di.y);const v=["","","","","","",""];let any=false;
+  L.forEach(it=>{let m;TM.lastIndex=0;while((m=TM.exec(it.s))){const cx=it.x+it.w*(m.index+m[0].length/2)/it.s.length;let k=0,b=1e9;for(let j=0;j<H.length;j++){const dd=Math.abs(cx-H[j]);if(dd<b){b=dd;k=j}}if(b<30){v[k]=m[1]+":"+m[2]+m[3].toUpperCase();any=true}}});
+  const nums=L.filter(it=>/^\d{1,3}$/.test(it.s.trim())&&it!==di&&it.x>(H.length>=6?H[5]+15:H[3]+40)).sort((a,b)=>b.x-a.x);
+  if(nums.length){v[6]=nums[0].s.trim();any=true}
   if(any)rows[d]=v});
  let printedTotal=null;const tt=R.find(i=>/TOTAL/i.test(i.s));
  if(tt){const n=lineOf(R,tt.y).filter(i=>/^\d{1,4}$/.test(i.s.trim())).sort((a,b)=>b.x-a.x);if(n.length)printedTotal=+n[0].s}
@@ -149,6 +150,6 @@ $("f").onchange=async e=>{const f=e.target.files[0];if(!f)return;
  try{const r=await readPdf(f);if(!r.length){$("msg").innerHTML="<small class='diff'>No DTRs found. The PDF may be a scan, or its layout differs from Form 48. You can still enter times by hand below.</small>";return}
   recs=r;cur=0;$("msg").innerHTML="<small>Found "+r.length+" DTR"+(r.length>1?"s":"")+". Check the values against your PDF before using them.</small>";load()}
  catch(err){console.error(err);$("msg").innerHTML="<small class='diff'>Couldn’t read this PDF here ("+esc(err.message||err)+"). You can still enter times by hand below.</small>"}};
-recs=[sample()];load();
+recs=[blank()];load();
 </script></main>
 <footer>© 2026 Office of the Human Resource Management and Development</footer></body></html>
