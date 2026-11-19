@@ -55,8 +55,8 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div><small>Hours : minutes</small><b id="thm">0h 0m</b></div>
 <div><small>Day equivalent</small><b id="td">0.000</b></div>
 <div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
-<div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
-<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
+<div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Download Summary</button></div></div>
+<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th></tr></thead><tbody id="lb"></tbody></table></div></div>
 <div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
 <p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries.</small></p></div>
 <div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
@@ -87,9 +87,9 @@ if(t[1]!=null&&$("am").checked)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.
 return{late,ut,tot:late+ut,inc:(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null)}}
 function recTot(r){let n=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)n+=c.tot}return n}
 const dayEq=n=>{const h=Math.floor(n/60),m=n%60;return(h*.125+(m?T[m-1]:0)).toFixed(3)};
-function renderList(){if(recs.length==1&&recs[0].empty){$("cnt").textContent="(0)";$("lb").innerHTML='<tr style="cursor:default"><td colspan="7" style="text-align:center;color:var(--mut);height:70px;white-space:normal">No DTRs yet. Upload a PDF to begin.</td></tr>';return}$("cnt").textContent="("+recs.length+")";
+function renderList(){if(recs.length==1&&recs[0].empty){$("cnt").textContent="(0)";$("lb").innerHTML='<tr style="cursor:default"><td colspan="6" style="text-align:center;color:var(--mut);height:70px;white-space:normal">No DTRs yet. Upload a PDF to begin.</td></tr>';return}$("cnt").textContent="("+recs.length+")";
 $("lb").innerHTML=recs.map((r,i)=>{const t=recTot(r),h=Math.floor(t/60),m=t%60,p=r.printedTotal;
-return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td><td><button class="g" tabindex="-1">Open</button></td></tr>`}).join("");
+return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td></tr>`}).join("");
 $("lb").querySelectorAll("tr").forEach((tr,i)=>tr.onclick=()=>{cur=i;load()})}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
@@ -112,9 +112,10 @@ $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderL
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
 ["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
 $("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
-$("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
-recs.forEach(r=>{const [y,mo]=r.month.split("-").map(Number);Object.keys(r.rows).map(Number).sort((a,b)=>a-b).forEach(d=>{const dow=new Date(y,mo-1,d).getDay();if(dow==0||dow==6)return;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)L.push([q(r.name),r.month,d,c.late,c.ut,c.tot].join(","))});L.push([q(r.name),r.month,q("TOTAL"),"","",recTot(r)].join(","))});
-const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join("\n")],{type:"text/csv"}));a.download="dtr-late-undertime.csv";a.click()};
+$("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+const L=[["Name","Month","L/UT (min)","h:m","Day equiv.","DTR total"].map(q).join(",")];
+recs.forEach(r=>{const t=recTot(r);L.push([q(r.name),q(r.month),t,q(Math.floor(t/60)+"h "+t%60+"m"),dayEq(t),r.printedTotal==null?"":r.printedTotal].join(","))});
+const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download="dtr-summary.csv";a.click()};
 
 /* ---------- PDF reading ---------- */
 const MON=["january","february","march","april","may","june","july","august","september","october","november","december"];
