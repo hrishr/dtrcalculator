@@ -34,53 +34,117 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <nav><div class="in"><b>Late/Undertime</b><span>Conversion table</span></div></nav>
 <main>
 <h1>DTR late/undertime calculator</h1>
-<p class="s">Review daily time records and compute late and undertime based on an 8-hour day.</p>
+<p class="s">Upload a PDF with one or many DTRs and get late and undertime for each employee, based on an 8-hour day.</p>
 
-<div class="grid">
-<div class="card"><label>1 · Upload your DTR (kept on this device, used as reference)</label>
-<input type="file" id="f" accept="image/*"><img id="prev" alt="Uploaded DTR">
-<small>The page can’t read text from images by itself, so copy the times from the picture into the table. Your October 2026 DTR is already filled in as a sample.</small></div>
-<div class="card"><label>2 · Schedule &amp; month</label>
-<div class="row"><div><label>AM in</label><input id="s1" value="8:00"></div><div><label>AM out</label><input id="s2" value="12:00"></div><div><label>PM in</label><input id="s3" value="13:00"></div><div><label>PM out</label><input id="s4" value="17:00"></div></div>
-<div class="row" style="margin-top:8px"><div><label>Month</label><input type="month" id="m" value="2026-10"></div><div style="display:flex;align-items:flex-end;gap:6px"><button class="g" id="clr">Clear</button><button class="g" id="smp">Sample</button></div></div>
-<small>Type times like 8:03A, 12:05P, 5:04P (or 24-hour 17:04). Weekends are skipped.</small></div>
+<div class="card">
+<label>1 · Upload DTR PDF (or an image to use as reference)</label>
+<div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div><div style="flex:1"><button class="g" id="smp">Load sample</button></div></div>
+<div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
+<img id="prev" alt="Uploaded DTR">
 </div>
 
-<div class="card big">
+<div class="card tw" id="listcard"><div class="row" style="align-items:center;margin-bottom:6px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
+<table style="min-width:560px"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div>
+
+<div class="card"><label>Schedule (applies to all)</label>
+<div class="row"><div><label>AM in</label><input id="s1" value="8:00"></div><div><label>AM out</label><input id="s2" value="12:00"></div><div><label>PM in</label><input id="s3" value="13:00"></div><div><label>PM out</label><input id="s4" value="17:00"></div></div></div>
+
+<div class="card"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div></div>
+<div class="big" style="margin-top:12px">
 <div><small>Total late/undertime</small><b id="tm">0 min</b></div>
 <div><small>Hours : minutes</small><b id="thm">0h 0m</b></div>
-<div><small>Day equivalent (conversion table)</small><b id="td">0.000</b></div>
-<div><small>Printed on DTR</small><b id="tp">—</b></div>
-</div>
+<div><small>Day equivalent</small><b id="td">0.000</b></div>
+<div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
 
 <div class="card tw"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody></table>
-<p><small>“DTR shows” is optional: enter the L/UT value printed on your form to spot differences. Red means the printed value differs from the standard rule (late after the scheduled in-time, undertime before the scheduled out-time).</small></p></div>
+<p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (late after the scheduled in-time, undertime before the scheduled out-time). * means a half-day had no entries.</small></p></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 const T=[.002,.004,.006,.008,.010,.012,.015,.017,.019,.021,.023,.025,.027,.029,.031,.033,.035,.037,.040,.042,.044,.046,.048,.050,.052,.054,.056,.058,.060,.062,.065,.067,.069,.071,.073,.075,.077,.079,.081,.083,.085,.087,.090,.092,.094,.096,.098,.100,.102,.104,.106,.108,.110,.112,.115,.117,.119,.121,.123,.125];
 const SAMPLE={1:["8:03A","12:05P","12:19P","5:04P",3],5:["7:54A","11:41A","11:54A","5:01P",24],6:["7:52A","12:01P","12:12P","5:03P",0],7:["7:52A","12:02P","12:13P","5:07P",0],8:["8:13A","12:01P","12:06P","5:02P",13],14:["8:13A","12:10P","12:44P","5:05P",13],15:["8:09A","12:10P","12:14P","5:05P",9],19:["8:07A","11:34A","11:46A","5:04P",37],20:["8:23A","12:04P","12:10P","5:04P",23],26:["7:52A","11:31A","11:42A","",22],28:["8:33A","12:01P","12:08P","5:05P",33],29:["7:56A","12:02P","12:08P","5:08P",0]};
 const $=id=>document.getElementById(id);
+let recs=[],cur=0;
+const sample=()=>({name:"MARK ANGELO ZARA (E01-23-0029)",month:"2026-10",printedTotal:177,rows:JSON.parse(JSON.stringify(SAMPLE))});
 function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12)h+=12;return h*60+mi}
-function build(){const [y,mo]=$("m").value.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
-for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay();const dd=String(d).padStart(2,"0");
-if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="8">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
-h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3].map(i=>`<td><input data-c="${i}" aria-label="Day ${d} column ${i+1}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="p" inputmode="numeric"></td></tr>`}
-$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",calc));}
-function fill(sample){document.querySelectorAll("#tb tr[data-d]").forEach(r=>{const v=sample?SAMPLE[r.dataset.d]:null;r.querySelectorAll("input").forEach((i,k)=>i.value=v?(v[k]===""||v[k]==null?"":v[k]):"")});calc()}
-function calc(){const S=[1,2,3,4].map(i=>parse($("s"+i).value,i-1));let tot=0,pr=0,hasP=false;
-document.querySelectorAll("#tb tr[data-d]").forEach(r=>{const I=r.querySelectorAll("input");const t=[0,1,2,3].map(i=>parse(I[i].value,i));
-const L=r.querySelector(".l"),U=r.querySelector(".u"),R=r.querySelector(".r");
-if(t.some(isNaN)){L.textContent=U.textContent="";R.textContent="?";R.className="res r diff";return}
-if(t.every(x=>x===null)){L.textContent=U.textContent="";R.textContent="0";R.className="res r";}
-else{let late=0,ut=0;if(t[0]!=null)late+=Math.max(0,t[0]-S[0]);if(t[2]!=null)late+=Math.max(0,t[2]-S[2]);
+const sched=()=>[1,2,3,4].map(i=>parse($("s"+i).value,i-1));
+function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};if(t.every(x=>x===null))return null;
+let late=0,ut=0;if(t[0]!=null)late+=Math.max(0,t[0]-S[0]);if(t[2]!=null)late+=Math.max(0,t[2]-S[2]);
 if(t[1]!=null)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.max(0,S[3]-t[3]);
-L.textContent=late;U.textContent=ut;R.textContent=late+ut;tot+=late+ut;
-const inc=(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null);R.title=inc?"Incomplete day: only the entered times were counted":"";if(inc)R.textContent=(late+ut)+"*";}
-const pv=I[4].value.trim();const cell=r.querySelector(".r");if(pv!==""){hasP=true;pr+=+pv||0;cell.className="res r "+((+pv)==parseInt(cell.textContent)?"okc":"diff")}else cell.className="res r"});
-$("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").textContent=h+"h "+m+"m";
-$("td").textContent=(h*.125+(m?T[m-1]:0)).toFixed(3);$("tp").textContent=hasP?pr+" min":"—"}
-$("f").onchange=e=>{const f=e.target.files[0];if(!f)return;const p=$("prev");p.src=URL.createObjectURL(f);p.style.display="block"};
-["s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("m").onchange=()=>{build();fill(false)};
-$("clr").onclick=()=>fill(false);$("smp").onclick=()=>{$("m").value="2026-10";build();fill(true)};
-build();fill(true);
-</script></main><footer>© 2026 Office of the Human Resource Management and Development</footer></body></html>
+return{late,ut,tot:late+ut,inc:(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null)}}
+function recTot(r,S){let n=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],S);if(c&&!c.bad)n+=c.tot}return n}
+const dayEq=n=>{const h=Math.floor(n/60),m=n%60;return(h*.125+(m?T[m-1]:0)).toFixed(3)};
+function renderList(){const S=sched();$("cnt").textContent="("+recs.length+")";
+$("lb").innerHTML=recs.map((r,i)=>{const t=recTot(r,S),h=Math.floor(t/60),m=t%60,p=r.printedTotal;
+return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td><td><button class="g" data-i="${i}">Open</button></td></tr>`}).join("");
+$("lb").querySelectorAll("button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;load()})}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
+for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay(),dd=String(d).padStart(2,"0");
+if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="8">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
+const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="4" inputmode="numeric" value="${esc(v[4]??"")}"></td></tr>`}
+$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();calc()}))}
+function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const v=[...tr.querySelectorAll("input")].map(i=>i.value.trim());if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
+function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
+function calc(){const S=sched(),r=recs[cur];let tot=0,pr=0,hasP=false;
+document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);
+const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r");const c=rowCalc(I,S);
+if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";R.className="res r diff";return}
+if(!c){L.textContent=U.textContent="";R.textContent="0"}else{L.textContent=c.late;U.textContent=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot}
+const pv=I[4].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
+$("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").textContent=h+"h "+m+"m";$("td").textContent=dayEq(tot);
+$("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
+$("nm").oninput=()=>{recs[cur].name=$("nm").value;renderList()};
+$("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
+["s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);
+$("smp").onclick=()=>{recs=[sample()];cur=0;$("msg").innerHTML="<small>Sample loaded.</small>";load()};
+$("csv").onclick=()=>{const S=sched(),q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
+recs.forEach(r=>{const [y,mo]=r.month.split("-").map(Number);Object.keys(r.rows).map(Number).sort((a,b)=>a-b).forEach(d=>{const dow=new Date(y,mo-1,d).getDay();if(dow==0||dow==6)return;const c=rowCalc(r.rows[d],S);if(c&&!c.bad)L.push([q(r.name),r.month,d,c.late,c.ut,c.tot].join(","))});L.push([q(r.name),r.month,q("TOTAL"),"","",recTot(r,S)].join(","))});
+const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join("\n")],{type:"text/csv"}));a.download="dtr-late-undertime.csv";a.click()};
+
+/* ---------- PDF reading ---------- */
+const MON=["january","february","march","april","may","june","july","august","september","october","november","december"];
+const TM=/(\d{1,2}):(\d{2})\s*([AP])/gi;
+function lineOf(items,y,tol=3){return items.filter(i=>Math.abs(i.y-y)<=tol)}
+function parseRegion(R){
+ const hd=R.filter(i=>/^(IN|OUT)$/.test(i.s.trim()));if(!hd.length)return null;
+ const top=Math.max(...hd.map(i=>i.y));const H=hd.filter(i=>Math.abs(i.y-top)<4).sort((a,b)=>a.x-b.x).slice(0,6).map(i=>i.x+i.w/2);
+ if(H.length<4)return null;
+ const txt=R.map(i=>i.s).join(" ");const mm=txt.match(new RegExp("("+MON.join("|")+")\\s*,?\\s*(\\d{4})","i"));
+ const month=mm?mm[2]+"-"+String(MON.indexOf(mm[1].toLowerCase())+1).padStart(2,"0"):null;
+ const nm=R.find(i=>/\(Name\)/i.test(i.s));let name="";
+ if(nm){const above=R.filter(i=>i.y>nm.y+1&&i.y<nm.y+30).sort((a,b)=>a.y-b.y);if(above.length){const y0=above[0].y;name=lineOf(above,y0).sort((a,b)=>a.x-b.x).map(i=>i.s.trim()).join(" ").replace(/\s+/g," ").trim()}}
+ const rows={};
+ R.forEach(di=>{const dm=di.s.match(/^\s*(\d{2})(?=\s|$)/);if(!dm||di.x>H[0]-18)return;const d=+dm[1];if(d<1||d>31)return;
+  const L=lineOf(R,di.y);const v=["","","","",""];let any=false;
+  L.forEach(it=>{let m;TM.lastIndex=0;while((m=TM.exec(it.s))){const cx=it.x+it.w*(m.index+m[0].length/2)/it.s.length;let k=0,b=1e9;for(let j=0;j<4;j++){const dd=Math.abs(cx-H[j]);if(dd<b){b=dd;k=j}}if(b<30){v[k]=m[1]+":"+m[2]+m[3].toUpperCase();any=true}}});
+  const nums=L.filter(it=>/^\d{1,3}$/.test(it.s.trim())&&it!==di&&it.x>H[3]+40).sort((a,b)=>b.x-a.x);
+  if(nums.length){v[4]=nums[0].s.trim();any=true}
+  if(any)rows[d]=v});
+ let printedTotal=null;const tt=R.find(i=>/TOTAL/i.test(i.s));
+ if(tt){const n=lineOf(R,tt.y).filter(i=>/^\d{1,4}$/.test(i.s.trim())).sort((a,b)=>b.x-a.x);if(n.length)printedTotal=+n[0].s}
+ return{name,month:month||"2026-01",rows,printedTotal}}
+function parsePage(items){
+ const names=items.filter(i=>/\(Name\)/i.test(i.s)).map(i=>({...i,x:i.x+i.w/2})).sort((a,b)=>a.x-b.x);
+ if(!names.length){const r=parseRegion(items);return r?[r]:[]}
+ const cols=[];names.forEach(n=>{const c=cols.find(c=>Math.abs(c.x-n.x)<120);if(c)c.n.push(n);else cols.push({x:n.x,n:[n]})});
+ cols.sort((a,b)=>a.x-b.x);const out=[];
+ cols.forEach((c,ci)=>{const xlo=ci==0?-1e9:(cols[ci-1].x+c.x)/2,xhi=ci==cols.length-1?1e9:(c.x+cols[ci+1].x)/2;
+  const ns=c.n.sort((a,b)=>b.y-a.y);ns.forEach((n,k)=>{const yhi=k==0?1e9:n.y+110,ylo=k==ns.length-1?-1e9:ns[k+1].y+110;
+   const R=items.filter(i=>i.x>=xlo&&i.x<xhi&&i.y<=yhi&&i.y>ylo);const r=parseRegion(R);if(r)out.push(r)})});
+ return out}
+async function readPdf(file){
+ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+ const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];
+ for(let p=1;p<=pdf.numPages;p++){const tc=await(await pdf.getPage(p)).getTextContent();
+  out.push(...parsePage(tc.items.filter(i=>i.str&&i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width}))))}
+ const seen=new Set();return out.filter(r=>{const k=r.name+"|"+r.month+"|"+JSON.stringify(r.rows);if(seen.has(k))return false;seen.add(k);return true})}
+$("f").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+ if(f.type.startsWith("image/")){const p=$("prev");p.src=URL.createObjectURL(f);p.style.display="block";$("msg").innerHTML="<small>Images can’t be read automatically. Copy the times into the table below, or upload the PDF instead.</small>";return}
+ $("msg").innerHTML="<small>Reading PDF…</small>";
+ try{const r=await readPdf(f);if(!r.length){$("msg").innerHTML="<small class='diff'>No DTRs found. The PDF may be a scan, or its layout differs from Form 48. You can still enter times by hand below.</small>";return}
+  recs=r;cur=0;$("msg").innerHTML="<small>Found "+r.length+" DTR"+(r.length>1?"s":"")+". Check the values against your PDF before using them.</small>";load()}
+ catch(err){console.error(err);$("msg").innerHTML="<small class='diff'>Couldn’t read this PDF here ("+esc(err.message||err)+"). You can still enter times by hand below.</small>"}};
+recs=[sample()];load();
+</script></main>
+<footer>© 2026 Office of the Human Resource Management and Development</footer></body></html>
