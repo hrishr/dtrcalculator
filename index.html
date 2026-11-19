@@ -29,7 +29,8 @@ td input{text-align:center;padding:3px 2px}tr.wk td{background:var(--wk);color:v
 button{font:inherit;font-weight:600;background:var(--ac);color:#fff;border:0;border-radius:999px;padding:7px 16px;cursor:pointer}button.g{background:#fff;color:var(--ac);border:1px solid #cfd6cc}
 small{color:var(--mut)}
 .top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:16px}@media(max-width:980px){.top{grid-template-columns:1fr}}.top .card{margin-bottom:16px}
-.layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}@media(max-width:980px){.layout{grid-template-columns:1fr}}
+.layout>.card{margin-bottom:0}.lc,.dt{align-self:start}.ec .big{margin-top:14px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}@media(max-width:980px){.layout{grid-template-columns:1fr}}
 .lc{margin-bottom:0}.sc{max-height:calc(37px * 20 + 38px);overflow:auto;border:1px solid var(--bd);border-radius:8px}
 .lt{min-width:560px}.lt td,.lt th{white-space:nowrap}.lt td:first-child{max-width:340px;overflow:hidden;text-overflow:ellipsis}.lt thead th{position:sticky;top:0;background:#fff;z-index:1;box-shadow:0 1px 0 var(--bd)}.lt td{height:37px;padding:0 6px;font-size:12.5px}.lt td button{padding:3px 12px;font-size:12.5px}.lt tbody tr{cursor:pointer}.lt tbody tr:hover{background:var(--wk)}
 .rc .card{margin-bottom:16px}.rc table{min-width:520px}
@@ -41,32 +42,25 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <h1>DTR late/undertime calculator</h1>
 <p class="s">Upload a PDF with one or many DTRs and get late and undertime for each employee, based on an 8-hour day.</p>
 
-<div class="top"><div class="card">
+<div class="layout">
+<div class="card">
 <label>1 · Upload DTR PDF (or an image to use as reference)</label>
 <div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div><div style="flex:1"><button class="g" id="smp">Load sample</button></div></div>
 <div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
 <img id="prev" alt="Uploaded DTR">
 </div>
-
-<div class="card"><label>Schedule (applies to all employees)</label>
-<div class="row"><div><label>AM in · Monday</label><input id="s0" value="7:30"></div><div><label>AM in · Tue–Fri</label><input id="s1" value="8:00"></div><div><label>AM out</label><input id="s2" value="12:00"></div><div><label>PM in</label><input id="s3" value="13:00"></div><div><label>PM out</label><input id="s4" value="17:00"></div></div>
-<label style="margin-top:10px;display:flex;gap:8px;align-items:center;color:var(--tx)"><input type="checkbox" id="am" style="width:auto"> Also count leaving before the AM out time as undertime</label></div>
-
-</div>
-<div class="layout"><div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
-<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
-
-<div class="rc"><div class="card"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div></div>
+<div class="card ec"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div></div>
 <div class="big" style="margin-top:12px">
 <div><small>Total late/undertime</small><b id="tm">0 min</b></div>
 <div><small>Hours : minutes</small><b id="thm">0h 0m</b></div>
 <div><small>Day equivalent</small><b id="td">0.000</b></div>
 <div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
-
-<div class="card tw"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
+<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
+<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody></table>
 <p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries.</small></p></div>
-
-</div></div>
+<div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
