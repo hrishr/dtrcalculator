@@ -72,6 +72,8 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script>
 const T=[.002,.004,.006,.008,.010,.012,.015,.017,.019,.021,.023,.025,.027,.029,.031,.033,.035,.037,.040,.042,.044,.046,.048,.050,.052,.054,.056,.058,.060,.062,.065,.067,.069,.071,.073,.075,.077,.079,.081,.083,.085,.087,.090,.092,.094,.096,.098,.100,.102,.104,.106,.108,.110,.112,.115,.117,.119,.121,.123,.125];
 const SAMPLE={1:["8:03A","12:05P","12:19P","5:04P",3],5:["7:54A","11:41A","11:54A","5:01P",24],6:["7:52A","12:01P","12:12P","5:03P",0],7:["7:52A","12:02P","12:13P","5:07P",0],8:["8:13A","12:01P","12:06P","5:02P",13],14:["8:13A","12:10P","12:44P","5:05P",13],15:["8:09A","12:10P","12:14P","5:05P",9],19:["8:07A","11:34A","11:46A","5:04P",37],20:["8:23A","12:04P","12:10P","5:04P",23],26:["7:52A","11:31A","11:42A","",22],28:["8:33A","12:01P","12:08P","5:05P",33],29:["7:56A","12:02P","12:08P","5:08P",0]};
@@ -112,10 +114,20 @@ $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderL
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
 ["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
 $("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
-$("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-const L=[["Name","Month","L/UT (min)","h:m","Day equiv.","DTR total"].map(q).join(",")];
-recs.forEach(r=>{const t=recTot(r);L.push([q(r.name),q(r.month),t,q(Math.floor(t/60)+"h "+t%60+"m"),dayEq(t),r.printedTotal==null?"":r.printedTotal].join(","))});
-const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download="dtr-summary.csv";a.click()};
+$("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;
+if(!window.jspdf){$("msg").innerHTML="<small class='diff'>The PDF tool couldn’t load. Check your connection and try again.</small>";return}
+const doc=new window.jspdf.jsPDF({unit:"pt",format:"a4"});
+doc.setFontSize(14);doc.setFont("helvetica","bold");doc.text("Late/Undertime Summary",40,42);
+doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Office of the Human Resource Management and Development",40,58);
+doc.text("Generated "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}),40,71);
+const tots=recs.map(r=>recTot(r));
+const body=recs.map((r,i)=>{const t=tots[i];return[r.name||"(unnamed)",r.month,String(t),Math.floor(t/60)+"h "+t%60+"m",dayEq(t),r.printedTotal==null?"—":String(r.printedTotal)]});
+doc.autoTable({startY:84,head:[["Name","Month","L/UT (min)","h:m","Day equiv.","DTR total"]],body,theme:"grid",
+styles:{fontSize:8.5,cellPadding:3,lineColor:[217,221,227]},headStyles:{fillColor:[18,101,51],textColor:255},alternateRowStyles:{fillColor:[245,247,244]},
+columnStyles:{1:{halign:"center"},2:{halign:"center",fontStyle:"bold"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"}},
+didParseCell:d=>{if(d.section==="body"&&d.column.index===5){const p=recs[d.row.index].printedTotal;if(p!=null&&p!==tots[d.row.index])d.cell.styles.textColor=[198,40,40]}},
+didDrawPage:d=>{doc.setFontSize(8);doc.setTextColor(120);doc.text("Page "+doc.internal.getNumberOfPages(),doc.internal.pageSize.getWidth()-70,doc.internal.pageSize.getHeight()-20);doc.setTextColor(0)}});
+doc.save("dtr-summary.pdf")};
 
 /* ---------- PDF reading ---------- */
 const MON=["january","february","march","april","may","june","july","august","september","october","november","december"];
