@@ -27,7 +27,7 @@ td input{text-align:center;padding:3px 2px}tr.wk td{background:var(--wk);color:v
 .res{font-weight:700}.diff{color:var(--bad)}.okc{color:var(--ok)}
 .big{display:flex;gap:14px;flex-wrap:wrap}.big div{flex:1;min-width:110px}.big b{display:block;font-size:24px;color:var(--ac)}
 button{font:inherit;font-weight:600;background:var(--ac);color:#fff;border:0;border-radius:999px;padding:7px 16px;cursor:pointer}button.g{background:#fff;color:var(--ac);border:1px solid #cfd6cc}
-small{color:var(--mut)}
+small{color:var(--mut)}input.ed{background:#fff3c4;border-color:var(--gold)}
 .top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:16px}@media(max-width:980px){.top{grid-template-columns:1fr}}.top .card{margin-bottom:16px}
 .layout>.card{margin-bottom:0}.lc{display:flex;flex-direction:column;contain:size}.lc .sc{flex:1 1 0;min-height:0;max-height:none}tfoot td{font-weight:700;border-top:2px solid var(--gold);border-bottom:0;padding:7px 4px;font-size:14px}.ec .big{margin-top:14px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch}@media(max-width:980px){.layout{grid-template-columns:1fr}.lc{contain:none}.lc .sc{flex:none;max-height:calc(37px * 20 + 38px)}}
@@ -49,7 +49,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
 <img id="prev" alt="Uploaded DTR">
 </div>
-<div class="card ec"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div></div>
+<div class="card ec"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div><div style="flex:0 0 auto;display:flex;align-items:flex-end;min-width:0"><button class="g" id="rst" title="Undo your edits for this employee">Reset to PDF</button></div></div>
 <div class="big" style="margin-top:12px">
 <div><small>Total late/undertime</small><b id="tm">0 min</b></div>
 <div><small>Hours : minutes</small><b id="thm">0h 0m</b></div>
@@ -90,8 +90,8 @@ const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=
 $("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();delete recs[cur].empty;calc()}))}
 function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const v=[...tr.querySelectorAll("input")].map(i=>i.value.trim());if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
 function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
-function calc(){const r=recs[cur],[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0;
-document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);
+function calc(){const r=recs[cur],O=r.orig?JSON.parse(r.orig):null,[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0;
+document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);const ov=(O&&O[tr.dataset.d])||[];tr.querySelectorAll("input").forEach((inp,k)=>inp.classList.toggle("ed",!!O&&inp.value.trim()!==(ov[k]||"")));
 const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r"),DE=tr.querySelector(".de");const c=rowCalc(I,sched(new Date(cy,cm-1,+tr.dataset.d).getDay()));
 if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";DE.textContent="";R.className="res r diff";return}
 if(!c){L.textContent=U.textContent="";R.textContent="0"}else{L.textContent=c.late;U.textContent=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot;tl+=c.late;tu+=c.ut}
@@ -102,7 +102,8 @@ $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"
 $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderList()};
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
 ["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
-$("smp").onclick=()=>{recs=[sample()];cur=0;$("msg").innerHTML="<small>Sample loaded.</small>";load()};
+$("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
+$("smp").onclick=()=>{recs=[sample()];recs[0].orig=JSON.stringify(recs[0].rows);cur=0;$("msg").innerHTML="<small>Sample loaded.</small>";load()};
 $("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
 recs.forEach(r=>{const [y,mo]=r.month.split("-").map(Number);Object.keys(r.rows).map(Number).sort((a,b)=>a-b).forEach(d=>{const dow=new Date(y,mo-1,d).getDay();if(dow==0||dow==6)return;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)L.push([q(r.name),r.month,d,c.late,c.ut,c.tot].join(","))});L.push([q(r.name),r.month,q("TOTAL"),"","",recTot(r)].join(","))});
 const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join("\n")],{type:"text/csv"}));a.download="dtr-late-undertime.csv";a.click()};
@@ -148,7 +149,7 @@ $("f").onchange=async e=>{const f=e.target.files[0];if(!f)return;
  if(f.type.startsWith("image/")){const p=$("prev");p.src=URL.createObjectURL(f);p.style.display="block";$("msg").innerHTML="<small>Images can’t be read automatically. Copy the times into the table below, or upload the PDF instead.</small>";return}
  $("msg").innerHTML="<small>Reading PDF…</small>";
  try{const r=await readPdf(f);if(!r.length){$("msg").innerHTML="<small class='diff'>No DTRs found. The PDF may be a scan, or its layout differs from Form 48. You can still enter times by hand below.</small>";return}
-  recs=r;cur=0;$("msg").innerHTML="<small>Found "+r.length+" DTR"+(r.length>1?"s":"")+". Check the values against your PDF before using them.</small>";load()}
+  recs=r;recs.forEach(x=>x.orig=JSON.stringify(x.rows));cur=0;$("msg").innerHTML="<small>Found "+r.length+" DTR"+(r.length>1?"s":"")+". Check the values against your PDF before using them.</small>";load()}
  catch(err){console.error(err);$("msg").innerHTML="<small class='diff'>Couldn’t read this PDF here ("+esc(err.message||err)+"). You can still enter times by hand below.</small>"}};
 recs=[blank()];load();
 </script></main>
