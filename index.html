@@ -57,7 +57,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
 <div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
 <div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
-<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td></tr></tfoot></table>
+<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
 <p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries.</small></p></div>
 <div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
 </div>
@@ -85,18 +85,18 @@ $("lb").querySelectorAll("tr").forEach((tr,i)=>tr.onclick=()=>{cur=i;load()})}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
 for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay(),dd=String(d).padStart(2,"0");
-if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="10">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
-const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td></tr>`}
+if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="11">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
+const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td><td class="de"></td></tr>`}
 $("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();delete recs[cur].empty;calc()}))}
 function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const v=[...tr.querySelectorAll("input")].map(i=>i.value.trim());if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
 function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
 function calc(){const r=recs[cur],[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0;
 document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);
-const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r");const c=rowCalc(I,sched(new Date(cy,cm-1,+tr.dataset.d).getDay()));
-if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";R.className="res r diff";return}
+const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r"),DE=tr.querySelector(".de");const c=rowCalc(I,sched(new Date(cy,cm-1,+tr.dataset.d).getDay()));
+if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";DE.textContent="";R.className="res r diff";return}
 if(!c){L.textContent=U.textContent="";R.textContent="0"}else{L.textContent=c.late;U.textContent=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot;tl+=c.late;tu+=c.ut}
-const pv=I[6].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
-$("tl").textContent=tl;$("tu").textContent=tu;$("tt").textContent=tot;{const pt=r.printedTotal!=null?r.printedTotal:(hasP?pr:null);$("tpp").textContent=pt==null?"—":pt;$("tpp").className=pt==null?"":(pt==tot?"okc":"diff")}
+DE.textContent=dayEq(c?c.tot:0);const pv=I[6].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
+$("tde").textContent=dayEq(tot);$("tl").textContent=tl;$("tu").textContent=tu;$("tt").textContent=tot;{const pt=r.printedTotal!=null?r.printedTotal:(hasP?pr:null);$("tpp").textContent=pt==null?"—":pt;$("tpp").className=pt==null?"":(pt==tot?"okc":"diff")}
 $("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").textContent=h+"h "+m+"m";$("td").textContent=dayEq(tot);
 $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
 $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderList()};
