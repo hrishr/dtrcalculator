@@ -9,10 +9,10 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
 header{background:linear-gradient(90deg,#224a36,#2e6648);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px))}
-.in{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.in{max-width:none;margin:0 auto;padding:0 clamp(12px,2vw,32px);display:flex;align-items:center;gap:14px}
 header h2{font:700 26px 'Playfair Display',Georgia,serif;margin:0}header small{color:#cfe3d6;letter-spacing:.02em;font-size:12px;text-transform:uppercase}
 nav{background:#fff;border-bottom:4px solid var(--gold)}nav .in{padding:10px 10px;gap:22px;font-size:14px;color:#667}nav b{color:#111}
-main{max-width:1280px;margin:0 auto;padding:36px 16px 40px;flex:1;width:100%}
+main{max-width:none;margin:0 auto;padding:24px clamp(12px,2vw,32px) 32px;flex:1;width:100%}
 h1{font-size:28px;margin:0 0 4px;color:#fff;font-weight:700}p.s{color:#d6eadc;margin:0 0 18px}
 .card{background:var(--card);border:1px solid var(--gold);border-radius:14px;padding:16px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
@@ -25,12 +25,13 @@ input:focus{outline:2px solid var(--gold);outline-offset:0}
 th,td{border-bottom:1px solid var(--bd);padding:3px 4px;text-align:center;font-size:13px}th{color:var(--mut);font-weight:600}
 td input{text-align:center;padding:3px 2px}tr.wk td{background:var(--wk);color:var(--mut);letter-spacing:.3em}
 .res{font-weight:700}.diff{color:var(--bad)}.okc{color:var(--ok)}
-.big{display:flex;gap:14px;flex-wrap:wrap}.big div{flex:1;min-width:150px}.big b{display:block;font-size:24px;color:var(--ac)}
+.big{display:flex;gap:14px;flex-wrap:wrap}.big div{flex:1;min-width:110px}.big b{display:block;font-size:24px;color:var(--ac)}
 button{font:inherit;font-weight:600;background:var(--ac);color:#fff;border:0;border-radius:999px;padding:7px 16px;cursor:pointer}button.g{background:#fff;color:var(--ac);border:1px solid #cfd6cc}
 small{color:var(--mut)}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}@media(max-width:980px){.layout{grid-template-columns:1fr}}
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:16px}@media(max-width:980px){.top{grid-template-columns:1fr}}.top .card{margin-bottom:16px}
+.layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}@media(max-width:980px){.layout{grid-template-columns:1fr}}
 .lc{margin-bottom:0}.sc{max-height:calc(37px * 20 + 38px);overflow:auto;border:1px solid var(--bd);border-radius:8px}
-.lt{min-width:460px}.lt thead th{position:sticky;top:0;background:#fff;z-index:1;box-shadow:0 1px 0 var(--bd)}.lt td{height:37px;padding:0 6px;font-size:12.5px}.lt td button{padding:3px 12px;font-size:12.5px}.lt tbody tr{cursor:pointer}.lt tbody tr:hover{background:var(--wk)}
+.lt{min-width:560px}.lt td,.lt th{white-space:nowrap}.lt td:first-child{max-width:340px;overflow:hidden;text-overflow:ellipsis}.lt thead th{position:sticky;top:0;background:#fff;z-index:1;box-shadow:0 1px 0 var(--bd)}.lt td{height:37px;padding:0 6px;font-size:12.5px}.lt td button{padding:3px 12px;font-size:12.5px}.lt tbody tr{cursor:pointer}.lt tbody tr:hover{background:var(--wk)}
 .rc .card{margin-bottom:16px}.rc table{min-width:520px}
 footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-align:center;font-size:12px;font-weight:600;text-transform:uppercase;padding:18px 12px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
 </style></head><body>
@@ -40,7 +41,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <h1>DTR late/undertime calculator</h1>
 <p class="s">Upload a PDF with one or many DTRs and get late and undertime for each employee, based on an 8-hour day.</p>
 
-<div class="card">
+<div class="top"><div class="card">
 <label>1 · Upload DTR PDF (or an image to use as reference)</label>
 <div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div><div style="flex:1"><button class="g" id="smp">Load sample</button></div></div>
 <div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
@@ -51,6 +52,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div class="row"><div><label>AM in · Monday</label><input id="s0" value="7:30"></div><div><label>AM in · Tue–Fri</label><input id="s1" value="8:00"></div><div><label>AM out</label><input id="s2" value="12:00"></div><div><label>PM in</label><input id="s3" value="13:00"></div><div><label>PM out</label><input id="s4" value="17:00"></div></div>
 <label style="margin-top:10px;display:flex;gap:8px;align-items:center;color:var(--tx)"><input type="checkbox" id="am" style="width:auto"> Also count leaving before the AM out time as undertime</label></div>
 
+</div>
 <div class="layout"><div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Export CSV</button></div></div>
 <div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>DTR total</th><th></th></tr></thead><tbody id="lb"></tbody></table></div></div>
 
