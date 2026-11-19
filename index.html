@@ -45,7 +45,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div class="layout">
 <div class="card">
 <label>1 · Upload DTR PDF (or an image to use as reference)</label>
-<div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div><div style="flex:1"><button class="g" id="smp">Load sample</button></div></div>
+<div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div></div>
 <div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
 <img id="prev" alt="Uploaded DTR">
 </div>
@@ -112,7 +112,6 @@ $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderL
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
 ["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
 $("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
-$("smp").onclick=()=>{recs=[sample()];recs[0].orig=JSON.stringify(recs[0].rows);cur=0;$("msg").innerHTML="<small>Sample loaded.</small>";load()};
 $("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const L=[["Name","Month","Day","Late (min)","Undertime (min)","L/UT (min)"].map(q).join(",")];
 recs.forEach(r=>{const [y,mo]=r.month.split("-").map(Number);Object.keys(r.rows).map(Number).sort((a,b)=>a-b).forEach(d=>{const dow=new Date(y,mo-1,d).getDay();if(dow==0||dow==6)return;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)L.push([q(r.name),r.month,d,c.late,c.ut,c.tot].join(","))});L.push([q(r.name),r.month,q("TOTAL"),"","",recTot(r)].join(","))});
 const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join("\n")],{type:"text/csv"}));a.download="dtr-late-undertime.csv";a.click()};
