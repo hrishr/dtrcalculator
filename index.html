@@ -19,6 +19,7 @@ h1{font-size:28px;margin:0 0 4px;color:#fff;font-weight:700}p.s{color:#d6eadc;ma
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
 label{font-size:13px;color:var(--mut);display:block;margin-bottom:3px;font-weight:500}
 input{font:inherit;color:var(--tx);background:#fff;border:1px solid #cfd6cc;border-radius:8px;padding:5px 7px;width:100%}
+select{font:inherit;color:var(--tx);background:#fff;border:1px solid #cfd6cc;border-radius:8px;padding:6px 8px;width:100%}select:focus{outline:2px solid var(--gold)}
 input:focus{outline:2px solid var(--gold);outline-offset:0}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1;min-width:100px}
 #prev{max-width:100%;border-radius:8px;border:1px solid var(--bd);display:none;margin-top:10px}
@@ -46,11 +47,15 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div id="v1">
 
 
+
+
 <div class="layout">
 <div class="card">
 <label>1 · Upload DTR PDF (or an image to use as reference)</label>
 <div class="row" style="align-items:center"><div style="flex:3"><input type="file" id="f" accept="application/pdf,image/*"></div></div>
-<div id="msg"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
+<div style="margin-top:10px"><label for="sch">Schedule to compute</label><select id="sch"><option value="sched1" selected>Schedule 1 · Mon 7:30 AM–5 PM, Tue–Fri 8 AM–5 PM</option><option value="sched2">Schedule 2 · Mon 7:30 AM–6 PM, Tue–Fri 9 AM–6 PM</option><option value="sched3">Schedule 3 · Mon–Fri 7 AM–4 PM</option><option value="sched4">Schedule 4 · Mon–Fri 7:30 AM–4:30 PM</option><option value="cww">CWW · Mon 7:30 AM–6:30 PM, Tue–Fri 7 AM–6 PM</option><option value="wfh">WFH · Mon 7:30 AM–5 PM, Tue–Fri 8 AM–5 PM</option><option value="others">Others (input time manually)</option></select>
+<div id="man" class="row" style="margin-top:8px" hidden><div><label>Monday in</label><input id="mi1" value="7:30"></div><div><label>Monday out</label><input id="mo1" value="17:00"></div><div><label>Tue–Fri in</label><input id="mi2" value="8:00"></div><div><label>Tue–Fri out</label><input id="mo2" value="17:00"></div></div></div>
+<div id="msg" style="margin-top:8px"><small>PDFs are read in your browser; nothing is uploaded anywhere. The PDF needs selectable text (not a scan). Duplicate copies of the same DTR on a page are read once.</small></div>
 <img id="prev" alt="Uploaded DTR">
 </div>
 <div class="card ec"><div class="row"><div style="flex:3"><label>Employee</label><input id="nm"></div><div><label>Month</label><input type="month" id="m"></div><div style="flex:0 0 auto;display:flex;align-items:flex-end;min-width:0"><button class="g" id="rst" title="Undo your edits for this employee">Reset to PDF</button></div></div>
@@ -62,8 +67,8 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Download Summary</button></div></div>
 <div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>Tardiness</th><th>Undertime</th><th>DTR total</th></tr></thead><tbody id="lb"></tbody></table></div></div>
 <div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>ABS</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tlh">0</td><td id="tlm">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
-<p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries. Orange = late, blue = undertime, red outline = edited by you. Late and Under can be typed over; clear the box to go back to the automatic value.</small></p></div>
-<div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
+<p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (based on the schedule selected under the upload box). * means a half-day had no entries. Orange = late, blue = undertime, red outline = edited by you. Late and Under can be typed over; clear the box to go back to the automatic value.</small></p></div>
+<div hidden><input id="s0" value="7:30"><input id="s1" value="7:30"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
 </div>
 </div>
 <div id="v2" hidden>
@@ -74,6 +79,8 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div class="card"><b>Minutes 1–30</b><table class="ct" style="margin-top:8px"><thead><tr><th>Minute</th><th>Equivalent</th></tr></thead><tbody id="cm1"></tbody></table></div>
 <div class="card"><b>Minutes 31–60</b><table class="ct" style="margin-top:8px"><thead><tr><th>Minute</th><th>Equivalent</th></tr></thead><tbody id="cm2"></tbody></table></div>
 </div></div>
+
+
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -87,7 +94,8 @@ let recs=[],cur=0;
 const sample=()=>{const rows={};for(const d in SAMPLE){const v=SAMPLE[d];rows[d]=[v[0],v[1],v[2],v[3],"","",v[4]]}return{name:"MARK ANGELO ZARA (E01-23-0029)",month:"2026-10",printedTotal:177,rows}};
 const blank=()=>{const d=new Date();return{name:"",month:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),printedTotal:null,rows:{},empty:true}};
 function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12)h+=12;return h*60+mi}
-const sched=dow=>[parse($(dow==1?"s0":"s1").value,0),parse($("s2").value,1),parse($("s3").value,2),parse($("s4").value,3)];
+const SCH={sched1:{m:["7:30","17:00"],d:["8:00","17:00"]},sched2:{m:["7:30","18:00"],d:["9:00","18:00"]},sched3:{m:["7:00","16:00"],d:["7:00","16:00"]},sched4:{m:["7:30","16:30"],d:["7:30","16:30"]},cww:{m:["7:30","18:30"],d:["7:00","18:00"]},wfh:{m:["7:30","17:00"],d:["8:00","17:00"]}};
+const sched=dow=>{const k=$("sch").value;let pr;if(k=="others")pr=dow==1?[$("mi1").value,$("mo1").value]:[$("mi2").value,$("mo2").value];else pr=SCH[k][dow==1?"m":"d"];return[parse(pr[0],0),parse($("s2").value,1),parse($("s3").value,2),parse(pr[1],3)]};
 function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};const lo=v[7],uo=v[8],hl=lo!==undefined&&lo!==""&&!isNaN(+lo),hu=uo!==undefined&&uo!==""&&!isNaN(+uo);if(t.every(x=>x===null)&&!hl&&!hu)return null;
 let late=0,ut=0;if(t[0]!=null)late+=Math.max(0,t[0]-S[0]);if(t[2]!=null)late+=Math.max(0,t[2]-S[2]);
 if(t[1]!=null&&$("am").checked)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.max(0,S[3]-t[3]);
@@ -123,7 +131,7 @@ $("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").text
 $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
 $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderList()};
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
-["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
+["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("sch").onchange=()=>{$("man").hidden=$("sch").value!="others";calc()};["mi1","mo1","mi2","mo2"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
 $("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
 $("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;
 if(!window.jspdf){$("msg").innerHTML="<small class='diff'>The PDF tool couldn’t load. Check your connection and try again.</small>";return}
@@ -139,6 +147,8 @@ columnStyles:{1:{halign:"center"},2:{halign:"center",fontStyle:"bold"},3:{halign
 didParseCell:d=>{if(d.section==="body"&&d.column.index===7){const p=recs[d.row.index].printedTotal;if(p!=null&&p!==tots[d.row.index])d.cell.styles.textColor=[198,40,40]}},
 didDrawPage:d=>{doc.setFontSize(8);doc.setTextColor(120);doc.text("Page "+doc.internal.getNumberOfPages(),doc.internal.pageSize.getWidth()-70,doc.internal.pageSize.getHeight()-20);doc.setTextColor(0)}});
 doc.save("dtr-summary.pdf")};
+
+
 
 
 /* ---------- PDF reading ---------- */
