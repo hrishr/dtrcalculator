@@ -93,7 +93,8 @@ const $=id=>document.getElementById(id);
 let recs=[],cur=0;
 const sample=()=>{const rows={};for(const d in SAMPLE){const v=SAMPLE[d];rows[d]=[v[0],v[1],v[2],v[3],"","",v[4]]}return{name:"MARK ANGELO ZARA (E01-23-0029)",month:"2026-10",printedTotal:177,rows}};
 const blank=()=>{const d=new Date();return{name:"",month:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),printedTotal:null,rows:{},empty:true}};
-function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12)h+=12;return h*60+mi}
+const maskT=v=>{const d=String(v).replace(/\D/g,"").slice(0,4);return d.length>2?d.slice(0,-2)+":"+d.slice(-2):d};
+function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12&&!((col==2||col==3)&&h==11))h+=12;return h*60+mi}
 const SCH={sched1:{m:["7:30","17:00"],d:["8:00","17:00"]},sched2:{m:["7:30","18:00"],d:["9:00","18:00"]},sched3:{m:["7:00","16:00"],d:["7:00","16:00"]},sched4:{m:["7:30","16:30"],d:["7:30","16:30"]},cww:{m:["7:30","18:30"],d:["7:00","18:00"]},wfh:{m:["7:30","17:00"],d:["8:00","17:00"]}};
 const sched=dow=>{const k=$("sch").value;let pr;if(k=="others")pr=dow==1?[$("mi1").value,$("mo1").value]:[$("mi2").value,$("mo2").value];else pr=SCH[k][dow==1?"m":"d"];return[parse(pr[0],0),parse($("s2").value,1),parse($("s3").value,2),parse(pr[1],3)]};
 function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};const lo=v[7],uo=v[8],hl=lo!==undefined&&lo!==""&&!isNaN(+lo),hu=uo!==undefined&&uo!==""&&!isNaN(+uo);if(t.every(x=>x===null)&&!hl&&!hu)return null;
@@ -112,8 +113,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
 for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay(),dd=String(d).padStart(2,"0");
 if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="12">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
-const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="lh"><span class="ce" contenteditable="plaintext-only" inputmode="numeric"></span></td><td class="l lm"><span class="ce" contenteditable="plaintext-only" inputmode="numeric"></span><input type="hidden" data-c="L" value="${esc(v[7]??"")}" ${v[7]?'data-ov="1"':""}></td><td class="u"><input data-c="U" inputmode="numeric" value="${esc(v[8]??"")}" ${v[8]?'data-ov="1"':""}></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td><td class="de"></td></tr>`}
-$("tb").innerHTML=h;$("tb").querySelectorAll("td.lh .ce,td.lm .ce").forEach(sp=>sp.addEventListener("input",()=>{const tr=sp.closest("tr"),a=tr.querySelector(".lh .ce").textContent.trim(),b=tr.querySelector(".lm .ce").textContent.trim(),LI=tr.querySelector(".l input");if(a===""&&b===""){LI.value="";LI.dataset.ov=""}else{LI.value=(parseInt(a)||0)*60+(parseInt(b)||0);LI.dataset.ov="1"}store();delete recs[cur].empty;calc()}));$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{if(i.dataset.c==="L"||i.dataset.c==="U")i.dataset.ov=i.value.trim()===""?"":"1";store();delete recs[cur].empty;calc()}))}
+const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" inputmode="numeric" maxlength="5" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="lh"><span class="ce" contenteditable="plaintext-only" inputmode="numeric"></span></td><td class="l lm"><span class="ce" contenteditable="plaintext-only" inputmode="numeric"></span><input type="hidden" data-c="L" value="${esc(v[7]??"")}" ${v[7]?'data-ov="1"':""}></td><td class="u"><input data-c="U" inputmode="numeric" value="${esc(v[8]??"")}" ${v[8]?'data-ov="1"':""}></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td><td class="de"></td></tr>`}
+$("tb").innerHTML=h;$("tb").querySelectorAll("td.lh .ce,td.lm .ce").forEach(sp=>sp.addEventListener("input",()=>{const tr=sp.closest("tr"),a=tr.querySelector(".lh .ce").textContent.trim(),b=tr.querySelector(".lm .ce").textContent.trim(),LI=tr.querySelector(".l input");if(a===""&&b===""){LI.value="";LI.dataset.ov=""}else{LI.value=(parseInt(a)||0)*60+(parseInt(b)||0);LI.dataset.ov="1"}store();delete recs[cur].empty;calc()}));$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{if(/^[0-5]$/.test(i.dataset.c))i.value=maskT(i.value);if(i.dataset.c==="L"||i.dataset.c==="U")i.dataset.ov=i.value.trim()===""?"":"1";store();delete recs[cur].empty;calc()}))}
 function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const q=[...tr.querySelectorAll("input")],g=k=>q[k].value.trim(),v=[g(0),g(1),g(2),g(3),g(4),g(5),g(8),q[6].dataset.ov?g(6):"",q[7].dataset.ov?g(7):""];if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
 function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
 function calc(){const r=recs[cur],O=r.orig?JSON.parse(r.orig):null,[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0,tl2=0;
@@ -131,7 +132,7 @@ $("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").text
 $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
 $("nm").oninput=()=>{recs[cur].name=$("nm").value;delete recs[cur].empty;renderList()};
 $("m").onchange=()=>{if($("m").value){store();recs[cur].month=$("m").value;build();calc()}};
-["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("sch").onchange=()=>{$("man").hidden=$("sch").value!="others";calc()};["mi1","mo1","mi2","mo2"].forEach(i=>$(i).oninput=calc);$("am").onchange=calc;
+["s0","s1","s2","s3","s4"].forEach(i=>$(i).oninput=calc);$("sch").onchange=()=>{$("man").hidden=$("sch").value!="others";calc()};["mi1","mo1","mi2","mo2"].forEach(i=>{$(i).setAttribute("inputmode","numeric");$(i).maxLength=5;$(i).oninput=()=>{$(i).value=maskT($(i).value);calc()}});$("am").onchange=calc;
 $("rst").onclick=()=>{const r=recs[cur];if(r.orig){r.rows=JSON.parse(r.orig);build();calc()}};
 $("csv").onclick=()=>{if(recs.length==1&&recs[0].empty)return;
 if(!window.jspdf){$("msg").innerHTML="<small class='diff'>The PDF tool couldn’t load. Check your connection and try again.</small>";return}
@@ -166,7 +167,7 @@ function parseRegion(R){
  const rows={};
  R.forEach(di=>{const dm=di.s.match(/^\s*(\d{2})(?=\s|$)/);if(!dm||di.x>H[0]-18)return;const d=+dm[1];if(d<1||d>31)return;
   const L=lineOf(R,di.y);const v=["","","","","","",""];let any=false;
-  L.forEach(it=>{let m;TM.lastIndex=0;while((m=TM.exec(it.s))){const cx=it.x+it.w*(m.index+m[0].length/2)/it.s.length;let k=0,b=1e9;for(let j=0;j<H.length;j++){const dd=Math.abs(cx-H[j]);if(dd<b){b=dd;k=j}}if(b<30){v[k]=m[1]+":"+m[2]+m[3].toUpperCase();any=true}}});
+  L.forEach(it=>{let m;TM.lastIndex=0;while((m=TM.exec(it.s))){const cx=it.x+it.w*(m.index+m[0].length/2)/it.s.length;let k=0,b=1e9;for(let j=0;j<H.length;j++){const dd=Math.abs(cx-H[j]);if(dd<b){b=dd;k=j}}if(b<30){v[k]=m[1]+":"+m[2];any=true}}});
   const nums=L.filter(it=>/^\d{1,3}$/.test(it.s.trim())&&it!==di&&it.x>(H.length>=6?H[5]+15:H[3]+40)).sort((a,b)=>b.x-a.x);
   if(nums.length){v[6]=nums[0].s.trim();any=true}
   if(any)rows[d]=v});
