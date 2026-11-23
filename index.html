@@ -60,8 +60,8 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div><small>Day equivalent</small><b id="td">0.000</b></div>
 <div><small>Printed on DTR</small><b id="tp">—</b></div></div></div>
 <div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Download Summary</button></div></div>
-<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>Tardiness</th><th>Undertime</th><th>DTR total</th></tr></thead><tbody id="lb"></tbody></table></div></div>
-<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Hours Late</th><th>Minutes Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tlh">0</td><td id="tlm">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
+<div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>Absent</th><th>Tardiness</th><th>Undertime</th><th>DTR total</th></tr></thead><tbody id="lb"></tbody></table></div></div>
+<div class="card tw dt"><table><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>ABS</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tlh">0</td><td id="tlm">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
 <p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries. Orange = late, blue = undertime, red outline = edited by you. Late and Under can be typed over; clear the box to go back to the automatic value.</small></p></div>
 <div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
 </div>
@@ -94,11 +94,11 @@ if(t[1]!=null&&$("am").checked)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.
 if(hl)late=Math.max(0,+lo);if(hu)ut=Math.max(0,+uo);
 return{late,ut,tot:late+ut,inc:(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null)}}
 function recTot(r){let n=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)n+=c.tot}return n}
-function recCounts(r){let tardy=0,ut=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad){if(c.late>0)tardy++;if(c.ut>0)ut++}}return{tardy,ut}}
+function recCounts(r){let tardy=0,ut=0,absent=0;const [y,mo]=r.month.split("-").map(Number);const dim=new Date(y,mo,0).getDate();for(let d=1;d<=dim;d++){const dw=new Date(y,mo-1,d).getDay();if(dw==0||dw==6)continue;const v=r.rows[d]||r.rows[String(d).padStart(2,"0")];if(!v||rowCalc(v,sched(dw))===null)absent++}for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad){if(c.late>0)tardy++;if(c.ut>0)ut++}}return{tardy,ut,absent}}
 const dayEq=n=>{const h=Math.floor(n/60),m=n%60;return(h*.125+(m?T[m-1]:0)).toFixed(3)};
-function renderList(){if(recs.length==1&&recs[0].empty){$("cnt").textContent="(0)";$("lb").innerHTML='<tr style="cursor:default"><td colspan="8" style="text-align:center;color:var(--mut);height:70px;white-space:normal">No DTRs yet. Upload a PDF to begin.</td></tr>';return}$("cnt").textContent="("+recs.length+")";
+function renderList(){if(recs.length==1&&recs[0].empty){$("cnt").textContent="(0)";$("lb").innerHTML='<tr style="cursor:default"><td colspan="9" style="text-align:center;color:var(--mut);height:70px;white-space:normal">No DTRs yet. Upload a PDF to begin.</td></tr>';return}$("cnt").textContent="("+recs.length+")";
 $("lb").innerHTML=recs.map((r,i)=>{const k=recCounts(r),t=recTot(r),h=Math.floor(t/60),m=t%60,p=r.printedTotal;
-return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td>${k.tardy}</td><td>${k.ut}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td></tr>`}).join("");
+return`<tr style="${i==cur?'background:var(--wk)':''}"><td style="text-align:left">${esc(r.name||"(unnamed)")}</td><td>${r.month}</td><td class="res">${t}</td><td>${h}h ${m}m</td><td>${dayEq(t)}</td><td>${k.absent}</td><td>${k.tardy}</td><td>${k.ut}</td><td class="${p==null?'':p==t?'okc':'diff'}">${p==null?"—":p}</td></tr>`}).join("");
 $("lb").querySelectorAll("tr").forEach((tr,i)=>tr.onclick=()=>{cur=i;load()})}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
@@ -132,11 +132,11 @@ doc.setFontSize(14);doc.setFont("helvetica","bold");doc.text("Late/Undertime Sum
 doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Office of the Human Resource Management and Development",40,58);
 doc.text("Generated "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}),40,71);
 const tots=recs.map(r=>recTot(r));
-const body=recs.map((r,i)=>{const t=tots[i],k=recCounts(r);return[r.name||"(unnamed)",r.month,String(t),Math.floor(t/60)+"h "+t%60+"m",dayEq(t),String(k.tardy),String(k.ut),r.printedTotal==null?"—":String(r.printedTotal)]});
-doc.autoTable({startY:84,head:[["Name","Month","L/UT (min)","h:m","Day equiv.","Tardiness","Undertime","DTR total"]],body,theme:"grid",
+const body=recs.map((r,i)=>{const t=tots[i],k=recCounts(r);return[r.name||"(unnamed)",r.month,String(t),Math.floor(t/60)+"h "+t%60+"m",dayEq(t),String(k.absent),String(k.tardy),String(k.ut),r.printedTotal==null?"—":String(r.printedTotal)]});
+doc.autoTable({startY:84,head:[["Name","Month","L/UT (min)","h:m","Day equiv.","Absent","Tardiness","Undertime","DTR total"]],body,theme:"grid",
 styles:{fontSize:8.5,cellPadding:3,lineColor:[217,221,227]},headStyles:{fillColor:[18,101,51],textColor:255},alternateRowStyles:{fillColor:[245,247,244]},
-columnStyles:{1:{halign:"center"},2:{halign:"center",fontStyle:"bold"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"},6:{halign:"center"},7:{halign:"center"}},
-didParseCell:d=>{if(d.section==="body"&&d.column.index===7){const p=recs[d.row.index].printedTotal;if(p!=null&&p!==tots[d.row.index])d.cell.styles.textColor=[198,40,40]}},
+columnStyles:{1:{halign:"center"},2:{halign:"center",fontStyle:"bold"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"},6:{halign:"center"},7:{halign:"center"},8:{halign:"center"}},
+didParseCell:d=>{if(d.section==="body"&&d.column.index===8){const p=recs[d.row.index].printedTotal;if(p!=null&&p!==tots[d.row.index])d.cell.styles.textColor=[198,40,40]}},
 didDrawPage:d=>{doc.setFontSize(8);doc.setTextColor(120);doc.text("Page "+doc.internal.getNumberOfPages(),doc.internal.pageSize.getWidth()-70,doc.internal.pageSize.getHeight()-20);doc.setTextColor(0)}});
 doc.save("dtr-summary.pdf")};
 
