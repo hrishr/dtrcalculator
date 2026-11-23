@@ -30,7 +30,7 @@ td input{text-align:center;padding:3px 2px}tr.wk td{background:var(--wk);color:v
 button{font:inherit;font-weight:600;background:var(--ac);color:#fff;border:0;border-radius:999px;padding:7px 16px;cursor:pointer}button.g{background:#fff;color:var(--ac);border:1px solid #cfd6cc}
 small{color:var(--mut)}input.lt{background:#ffd9a6;border-color:#f08c00;color:#7a4300}input.ut{background:#cfe5ff;border-color:#1e88e5;color:#0d47a1}
 input.ed{border:1px solid #d32f2f;box-shadow:0 0 0 1px #d32f2f;color:#b71c1c;font-weight:600}input.ed:not(.lt):not(.ut){background:#ffe0e0}
-td.l.on{background:#ffd9a6;color:#7a4300;font-weight:700}td.u.on{background:#cfe5ff;color:#0d47a1;font-weight:700}
+td.l.on,td.u.on{font-weight:700}td.l.on input{background:#ffd9a6;border-color:#f08c00;color:#7a4300;font-weight:700}td.u.on input{background:#cfe5ff;border-color:#1e88e5;color:#0d47a1;font-weight:700}td.l input,td.u input{text-align:center}
 .top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:16px}@media(max-width:980px){.top{grid-template-columns:1fr}}.top .card{margin-bottom:16px}
 .layout>.card{margin-bottom:0}.lc{display:flex;flex-direction:column;contain:size}.lc .sc{flex:1 1 0;min-height:0;max-height:none}.dt table{table-layout:fixed;min-width:860px}.dt th{white-space:nowrap}.dt td input{min-width:0}
 tfoot td{font-weight:700;border-top:2px solid var(--gold);border-bottom:0;padding:7px 4px;font-size:14px}.ec .big{margin-top:14px}
@@ -61,7 +61,7 @@ footer{background:var(--hd);border-top:3px solid var(--gold);color:#fff;text-ali
 <div class="card lc" id="listcard"><div class="row" style="align-items:center;margin-bottom:8px"><div><b>Employees found</b> <small id="cnt"></small></div><div style="text-align:right"><button class="g" id="csv">Download Summary</button></div></div>
 <div class="sc"><table class="lt"><thead><tr><th style="text-align:left">Name</th><th>Month</th><th>L/UT (min)</th><th>h:m</th><th>Day equiv.</th><th>Tardiness</th><th>Undertime</th><th>DTR total</th></tr></thead><tbody id="lb"></tbody></table></div></div>
 <div class="card tw dt"><table><colgroup><col style="width:44px"><col><col><col><col><col><col><col style="width:56px"><col style="width:60px"><col style="width:58px"><col style="width:78px"><col style="width:84px"></colgroup><thead><tr><th>Day</th><th>AM in</th><th>AM out</th><th>PM in</th><th>PM out</th><th>OT in</th><th>OT out</th><th>Late</th><th>Under</th><th>L/UT</th><th>DTR shows</th><th>Day equiv.</th></tr></thead><tbody id="tb"></tbody><tfoot><tr><td colspan="7" style="text-align:right">TOTAL</td><td id="tl">0</td><td id="tu">0</td><td id="tt" class="okc">0</td><td id="tpp">—</td><td id="tde">0.000</td></tr></tfoot></table>
-<p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries. Orange = late, blue = undertime, red outline = edited by you.</small></p></div>
+<p><small>Times like 8:03A, 12:05P, 5:04P work (or 24-hour). Red in the L/UT column means the printed value differs from the standard rule (Monday 7:30, Tue–Fri 8:00, afternoon 1:00–5:00). * means a half-day had no entries. Orange = late, blue = undertime, red outline = edited by you. Late and Under can be typed over; clear the box to go back to the automatic value.</small></p></div>
 <div hidden><input id="s0" value="7:30"><input id="s1" value="8:00"><input id="s2" value="12:00"><input id="s3" value="13:00"><input id="s4" value="17:00"><input type="checkbox" id="am"></div>
 </div>
 </div>
@@ -86,9 +86,10 @@ const sample=()=>{const rows={};for(const d in SAMPLE){const v=SAMPLE[d];rows[d]
 const blank=()=>{const d=new Date();return{name:"",month:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),printedTotal:null,rows:{},empty:true}};
 function parse(s,col){s=(s||"").trim().toLowerCase();if(!s)return null;const m=s.match(/^(\d{1,2})[:.]?(\d{2})\s*([ap])?m?$/);if(!m)return NaN;let h=+m[1],mi=+m[2];if(h>24||mi>59)return NaN;if(m[3]){if(m[3]=="p"&&h<12)h+=12;if(m[3]=="a"&&h==12)h=0}else if(col>=2&&h<12)h+=12;return h*60+mi}
 const sched=dow=>[parse($(dow==1?"s0":"s1").value,0),parse($("s2").value,1),parse($("s3").value,2),parse($("s4").value,3)];
-function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};if(t.every(x=>x===null))return null;
+function rowCalc(v,S){const t=[0,1,2,3].map(i=>parse(v[i],i));if(t.some(isNaN))return{bad:1};const lo=v[7],uo=v[8],hl=lo!==undefined&&lo!==""&&!isNaN(+lo),hu=uo!==undefined&&uo!==""&&!isNaN(+uo);if(t.every(x=>x===null)&&!hl&&!hu)return null;
 let late=0,ut=0;if(t[0]!=null)late+=Math.max(0,t[0]-S[0]);if(t[2]!=null)late+=Math.max(0,t[2]-S[2]);
 if(t[1]!=null&&$("am").checked)ut+=Math.max(0,S[1]-t[1]);if(t[3]!=null)ut+=Math.max(0,S[3]-t[3]);
+if(hl)late=Math.max(0,+lo);if(hu)ut=Math.max(0,+uo);
 return{late,ut,tot:late+ut,inc:(t[0]==null&&t[1]==null)||(t[2]==null&&t[3]==null)}}
 function recTot(r){let n=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad)n+=c.tot}return n}
 function recCounts(r){let tardy=0,ut=0;const [y,mo]=r.month.split("-").map(Number);for(const d in r.rows){const dow=new Date(y,mo-1,+d).getDay();if(dow==0||dow==6)continue;const c=rowCalc(r.rows[d],sched(dow));if(c&&!c.bad){if(c.late>0)tardy++;if(c.ut>0)ut++}}return{tardy,ut}}
@@ -101,19 +102,19 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 function build(){const r=recs[cur];const [y,mo]=r.month.split("-").map(Number);const n=new Date(y,mo,0).getDate();let h="";
 for(let d=1;d<=n;d++){const dow=new Date(y,mo-1,d).getDay(),dd=String(d).padStart(2,"0");
 if(dow==0||dow==6){h+=`<tr class="wk"><td>${dd}</td><td colspan="11">${dow==6?"SATURDAY":"SUNDAY"}</td></tr>`;continue}
-const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"></td><td class="u"></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td><td class="de"></td></tr>`}
-$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{store();delete recs[cur].empty;calc()}))}
-function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const v=[...tr.querySelectorAll("input")].map(i=>i.value.trim());if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
+const v=r.rows[d]||[];h+=`<tr data-d="${d}"><td>${dd}</td>`+[0,1,2,3,4,5].map(i=>`<td><input data-c="${i}" value="${esc(v[i]??"")}"></td>`).join("")+`<td class="l"><input data-c="L" inputmode="numeric" value="${esc(v[7]??"")}" ${v[7]?'data-ov="1"':""}></td><td class="u"><input data-c="U" inputmode="numeric" value="${esc(v[8]??"")}" ${v[8]?'data-ov="1"':""}></td><td class="res r"></td><td><input data-c="6" inputmode="numeric" value="${esc(v[6]??"")}"></td><td class="de"></td></tr>`}
+$("tb").innerHTML=h;$("tb").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{if(i.dataset.c==="L"||i.dataset.c==="U")i.dataset.ov=i.value.trim()===""?"":"1";store();delete recs[cur].empty;calc()}))}
+function store(){const r=recs[cur];document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const q=[...tr.querySelectorAll("input")],g=k=>q[k].value.trim(),v=[g(0),g(1),g(2),g(3),g(4),g(5),g(8),q[6].dataset.ov?g(6):"",q[7].dataset.ov?g(7):""];if(v.some(x=>x))r.rows[tr.dataset.d]=v;else delete r.rows[tr.dataset.d]})}
 function load(){const r=recs[cur];$("nm").value=r.name;$("m").value=r.month;build();calc()}
 function calc(){const r=recs[cur],O=r.orig?JSON.parse(r.orig):null,[cy,cm]=r.month.split("-").map(Number);let tot=0,pr=0,hasP=false,tl=0,tu=0;
-document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);const ov=(O&&O[tr.dataset.d])||[];tr.querySelectorAll("input").forEach((inp,k)=>inp.classList.toggle("ed",!!O&&inp.value.trim()!==(ov[k]||"")));
-const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r"),DE=tr.querySelector(".de");const Sd=sched(new Date(cy,cm-1,+tr.dataset.d).getDay()),c=rowCalc(I,Sd),tt=[0,1,2,3].map(i=>parse(I[i],i)),ins=tr.querySelectorAll("input");
+document.querySelectorAll("#tb tr[data-d]").forEach(tr=>{const I=[...tr.querySelectorAll("input")].map(i=>i.value);const ov=(O&&O[tr.dataset.d])||[];const SM=[0,1,2,3,4,5,7,8,6];tr.querySelectorAll("input").forEach((inp,k)=>inp.classList.toggle("ed",!!O&&((k==6||k==7)&&!inp.dataset.ov?false:inp.value.trim()!==(ov[SM[k]]||""))));
+const LI=tr.querySelector(".l input"),UI=tr.querySelector(".u input"),V=[...I.slice(0,6),I[8],LI.dataset.ov?I[6]:"",UI.dataset.ov?I[7]:""];const L=tr.querySelector(".l"),U=tr.querySelector(".u"),R=tr.querySelector(".r"),DE=tr.querySelector(".de");const Sd=sched(new Date(cy,cm-1,+tr.dataset.d).getDay()),c=rowCalc(V,Sd),tt=[0,1,2,3].map(i=>parse(I[i],i)),ins=tr.querySelectorAll("input");
 ins[0].classList.toggle("lt",tt[0]!=null&&tt[0]>Sd[0]);ins[2].classList.toggle("lt",tt[2]!=null&&tt[2]>Sd[2]);
 ins[1].classList.toggle("ut",$("am").checked&&tt[1]!=null&&tt[1]<Sd[1]);ins[3].classList.toggle("ut",tt[3]!=null&&tt[3]<Sd[3]);
 L.classList.toggle("on",!!c&&c.late>0);U.classList.toggle("on",!!c&&c.ut>0);
-if(c&&c.bad){L.textContent=U.textContent="";R.textContent="?";DE.textContent="";R.className="res r diff";return}
-if(!c){L.textContent=U.textContent="";R.textContent="0"}else{L.textContent=c.late;U.textContent=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot;tl+=c.late;tu+=c.ut}
-DE.textContent=dayEq(c?c.tot:0);const pv=I[6].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
+if(c&&c.bad){if(!LI.dataset.ov)LI.value="";if(!UI.dataset.ov)UI.value="";R.textContent="?";DE.textContent="";R.className="res r diff";return}
+if(!c){if(!LI.dataset.ov)LI.value="";if(!UI.dataset.ov)UI.value="";R.textContent="0"}else{if(!LI.dataset.ov)LI.value=c.late;if(!UI.dataset.ov)UI.value=c.ut;R.textContent=c.tot+(c.inc?"*":"");tot+=c.tot;tl+=c.late;tu+=c.ut}
+DE.textContent=dayEq(c?c.tot:0);const pv=I[8].trim();R.className="res r";if(pv!==""){hasP=true;pr+=+pv||0;R.className="res r "+((+pv)==(c?c.tot:0)?"okc":"diff")}});
 $("tde").textContent=dayEq(tot);$("tl").textContent=tl;$("tu").textContent=tu;$("tt").textContent=tot;{const pt=r.printedTotal!=null?r.printedTotal:(hasP?pr:null);$("tpp").textContent=pt==null?"—":pt;$("tpp").className=pt==null?"":(pt==tot?"okc":"diff")}
 $("tm").textContent=tot+" min";const h=Math.floor(tot/60),m=tot%60;$("thm").textContent=h+"h "+m+"m";$("td").textContent=dayEq(tot);
 $("tp").textContent=r.printedTotal!=null?r.printedTotal+" min":(hasP?pr+" min":"—");renderList()}
